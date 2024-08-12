@@ -2,7 +2,7 @@
 
 import { Box, Button, Stack, TextField, FormGroup, FormControlLabel, styled, Typography, AntSwitch, createTheme, ThemeProvider } from '@mui/material'
 import Switch, { SwitchProps } from '@mui/material/Switch';
-
+import { grey } from '@mui/material/colors';
 import { useState, useRef, useEffect } from 'react'
 
 export default function Home() {
@@ -84,7 +84,26 @@ export default function Home() {
 
   const theme = createTheme({
     palette: {
-      mode: isDarkMode ? 'dark' : 'light',
+      mode: isDarkMode ? 'dark' : 'light',  
+      ...(isDarkMode && {
+        background: {
+          default: grey[900],   
+          paper: grey[800],     
+        },
+        primary: {
+          main: '#90caf9',      
+        },
+        secondary: {
+          main: '#f48fb1',      
+        },
+        text: {
+          primary: '#ffffff',   
+          secondary: grey[500], 
+        },
+      }),
+      ...(!isDarkMode && {
+        // Custom palette for light mode (optional)
+      }),
     },
   });
   
@@ -178,27 +197,30 @@ export default function Home() {
             maxHeight="100%"
           >
             {messages.map((message, index) => (
+            <Box
+              key={index}
+              display="flex"
+              justifyContent={
+                message.role === 'assistant' ? 'flex-start' : 'flex-end'
+              }
+            >
               <Box
-                key={index}
-                display="flex"
-                justifyContent={
-                  message.role === 'assistant' ? 'flex-start' : 'flex-end'
-                }
-              >
-                <Box
-                  bgcolor={
+                sx={{
+                  bgcolor:
                     message.role === 'assistant'
-                      ? 'primary.main'
-                      : 'secondary.main'
-                  }
-                  color="white"
-                  borderRadius={16}
-                  p={3}
-                >
-                  {message.content}
-                </Box>
+                      ? (isDarkMode ? '#6e6e6e' : '#157a1f')  // Assistant bubble color
+                      : (isDarkMode ? '#530791' : '#0081d6'), // User bubble color
+                  color: 'white',
+                  borderRadius: 16,
+                  p: 3,
+                  maxWidth: '80%',  // Optional: Limit bubble width
+                  wordWrap: 'break-word'  // Optional: Ensure long words wrap correctly
+                }}
+              >
+                {message.content}
               </Box>
-            ))}
+            </Box>
+          ))}
             <div ref={messagesEndRef} />
           </Stack>
           <Stack direction={'row'} spacing={2}>
@@ -211,12 +233,19 @@ export default function Home() {
               disabled={isLoading}
             />
             <Button 
-              variant="contained" 
-              onClick={sendMessage}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Sending...' : 'Send'}
-            </Button>
+            variant="contained" 
+            onClick={sendMessage}
+            disabled={isLoading}
+            sx={{
+              bgcolor: isDarkMode ? '#530791' : '#1976d2', 
+              color: isDarkMode ? '#fff' : '#fff',
+              '&:hover': {
+                bgcolor: isDarkMode ? '#7310c4' : '#1565c0'  
+              }
+            }}
+          >
+            {isLoading ? 'Sending...' : 'Send'}
+          </Button>
           </Stack>
         </Stack>
       </Box>

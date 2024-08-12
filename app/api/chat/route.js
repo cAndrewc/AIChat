@@ -1,5 +1,5 @@
-import {NextResponse} from 'next/server' 
-import OpenAI from 'openai' 
+import {NextResponse} from 'next/server' // Import NextResponse from Next.js for handling responses
+import Groq from 'groq-sdk'; // Import Groq library for interacting with the Groq API
 
 // System prompt for the AI, providing guidelines on how to respond to users
 const systemPrompt = `
@@ -63,36 +63,44 @@ Get ready to embark on your fitness journey with Headstarter Fitness App! Let's 
 Only answer questions related to the Headstarter Fitness App. or fitness related exclusively. DO not answer questions related to other apps or topics.
 `
 
+// Use your own system prompt here
+require('dotenv').config();
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY, // This is the default and can be omitted
+});
+// POST function to handle incoming requests
 export async function POST(req) {
-  const openai = new OpenAI() 
-  const data = await req.json() 
 
-  const completion = await openai.chat.completions.create({
-    messages: [{role: 'system', content: systemPrompt}, ...data], 
-    model: 'gpt-4o', 
-    stream: true, 
-  })
+const data = await req.json() // Parse the JSON body of the incoming request
 
-  
-  const stream = new ReadableStream({
-    async start(controller) {
-      const encoder = new TextEncoder() 
-      try {
-        
-        for await (const chunk of completion) {
-          const content = chunk.choices[0]?.delta?.content 
-          if (content) {
-            const text = encoder.encode(content) 
-            controller.enqueue(text) 
-          }
+// Create a chat completion request to the OpenAI API
+const completion = await groq.chat.completions.create({
+  messages: [{ role: "system", content: systemPrompt }, ...data ],
+  model: "llama3-8b-8192",
+  stream: true, // Enable streaming responses
+});
+
+// Create a ReadableStream to handle the streaming response
+const stream = new ReadableStream({
+  async start(controller) {
+    const encoder = new TextEncoder() // Create a TextEncoder to convert strings to Uint8Array
+    try {
+      // Iterate over the streamed chunks of the response
+      for await (const chunk of completion) {
+        const content = chunk.choices[0]?.delta?.content // Extract the content from the chunk
+        if (content) {
+          const text = encoder.encode(content) // Encode the content to Uint8Array
+          controller.enqueue(text) // Enqueue the encoded text to the stream
         }
-      } catch (err) {
-        controller.error(err) 
-      } finally {
-        controller.close() 
       }
-    },
-  })
+    } catch (err) {
+      controller.error(err) // Handle any errors that occur during streaming
+    } finally {
+      controller.close() // Close the stream when done
+    }
+  },
+})
 
-  return new NextResponse(stream) 
+return new NextResponse(stream) // Return the stream as the response
 }
